@@ -1,0 +1,8 @@
+[
+    {
+        "topic": "email_service",
+        "configEntries": [
+        {"name": "retention.ms", "value": "604800000"}
+        ]
+    }
+]

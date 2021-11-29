@@ -1,0 +1,94 @@
+version: '3'
+
+services:
+  public-service:
+    container_name: public-service
+    build:
+      context: ./public_service
+    image: public-service
+    networks:
+      - kafka-network
+    ports:
+      - 3000:3000
+
+  subscription-service:
+    container_name: subscription-service
+    build:
+      context: ./subscription_service
+    image: subscription-service
+    networks:
+      - db-network
+      - kafka-network
+    depends_on:
+      - db
+      - kafka
+
+  email-service:
+    container_name: email-service
+    build:
+      context: ./email_service
+    image: email-service
+    networks:
+      - kafka-network
+    depends_on:
+      - kafka
+    restart: always
+
+  db:
+    image: mongo
+    restart: always
+    volumes:
+      - mongo-data:/data/db
+    networks:
+      - express-network
+      - db-network
+    ports:
+      - 27017:27017
+
+  mongo-express:
+    image: mongo-express
+    restart: always
+    ports:
+      - 8081:8081
+    networks:
+      - express-network
+    environment:
+      - ME_CONFIG_MONGODB_SERVER=db
+
+  zookeeper:
+    container_name: zookeeper-server
+    image: 'bitnami/zookeeper:latest'
+    networks:
+      - kafka-network
+    ports:
+      - '2181:2181'
+    environment:
+      - ALLOW_ANONYMOUS_LOGIN=yes
+
+  kafka:
+    container_name: kafka
+    image: 'bitnami/kafka:latest'
+    networks:
+      - kafka-network
+    ports:
+      - '9092:9092'
+    environment:
+      - KAFKA_CFG_ZOOKEEPER_CONNECT=zookeeper-server:2181
+      - KAFKA_CFG_ADVERTISED_LISTENERS=PLAINTEXT://kafka:9092
+      - ALLOW_PLAINTEXT_LISTENER=yes
+    depends_on:
+      - zookeeper
+
+networks:
+  db-network:
+    name: db-network
+    driver: bridge
+  kafka-network:
+    name: kafka-network
+    driver: bridge
+  express-network:
+    name: express-network
+    driver: bridge
+
+volumes:
+  mongo-data:
